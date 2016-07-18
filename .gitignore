@@ -1,0 +1,11 @@
+.idea
+.DS_Store
+app/Config/database.php
+app/tmp
+node_modules
+Carl*
+InteractiveWorld*
+CrowdManipulation*
+Iwmodel*
+Tutorial*
+app/webroot/resources

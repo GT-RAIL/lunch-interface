@@ -39,3 +39,45 @@ html, body{
   background-image: linear-gradient(to bottom, #3cb0fd, #3498db);
   text-decoration: none;
 }
+
+.lunch-div {
+    width: 350px;
+    position: relative;
+    left: 20%;
+    top: 0;
+}
+.lunch {
+    width: 350px;
+    position: relative;
+    left: 0;
+    top: 0;
+}
+.lunch-item {
+    width: 110px;
+}
+.lunch-item0 {
+    position: absolute;
+    top: 90px; 
+    left: 80px;
+}
+.lunch-item1 {
+    position: absolute;
+    top: 90px; 
+    left: 180px;
+}
+.lunch-item2 {
+    position: absolute;
+    top: 220px; 
+    left: 80px;
+}
+.lunch-item3 {
+    position: absolute;
+    top: 220px; 
+    left: 180px; }
+
+.item-div{
+    width: 50%;
+    padding-left: 100px;
+}
+
+.

@@ -31,9 +31,12 @@ else{
 
 
 <?php
+//jquery
+echo $this->Html->script('jquery-1.11.0.');
 // bootstrap
 echo $this->Html->script('bootstrap.min');
 echo $this->Html->css('bootstrap.min');
+echo $this->Html->css('LunchesInterface');
 
 // Do analytics and logging 
 echo $this->Html->script('analytics.js');
@@ -46,8 +49,7 @@ echo $this->Html->script('tutorial.js');
 
 // CSS
 // For spinner etc.
-echo $this->Html->css(array(
-			'//cdnjs.cloudflare.com/ajax/libs/font-awesome/4.4.0/css/font-awesome.min.css'));
+echo $this->Html->css('font-awesome.min.css');
 echo $this->Html->css('LunchesInterface');
 
 //Init study information
@@ -56,8 +58,10 @@ echo $this->Rms->initStudy();
 $appointment = $environment['Condition'][0]['Slot'][0];
 ?>
 <script>
-var user_id =  <?php echo $user_id;?>;
 $(function() {
+    var user_id =  <?php echo $user_id;?>;
+    var lunch = ["empty", "empty", "empty", "empty"];
+    var empty_path = "/img/lunch/empty.png";
     $("#interface").hide();
     $().tutorial({
         onCompletion: function() {
@@ -66,21 +70,41 @@ $(function() {
 
         }
     });
+
+    $(".lunch-item").click(function() {
+        var id = $(this).attr('id');
+        var idx = $(this).data('idx');
+
+        lunch[idx] = "empty";
+        $("#lunch-item"+idx).attr('src', empty_path);
+    });
+
+    $(".item").click(function() {
+        var id = $(this).attr('id');
+        var src = $(this).attr('src');
+
+        for(i=0; i<lunch.length; ++i) {
+            if(lunch[i] == "empty") {
+                lunch[i] = src;
+                $("#lunch-item"+i).attr('src', src);
+                return;
+            }
+        }
+
+        alert("The lunchbox is full. Please remove an item first.");
+    });
 });
 </script>
 
 <header class="container">
     <h3 style="text-align: center">Teach a Robot a Task</h3>
 </header>
-<section class='wrapper style4'>
-Stuff here...
-</section>
 
 <!-- intro section -->
 <section class='wrapper style4'>
     <section id="tutorial" data-num-slides="3">
         <section id="tutorial-1" class="tutorial-section">
-            <p>Someday, you may have a robot in your home (if you don't already) to help you. Since every home is different and people have different preferences, you may need to teach your robot how you want it to do things.</p>
+            <p>Someday, you may have a robot in your home to help you. Since every home is different, you may need to teach your robot how to do things.</p>
             <section>
 <?php
 echo $this->Html->image('robot-home.png', array(
@@ -93,7 +117,7 @@ echo $this->Html->image('robot-home.png', array(
         </section>
 
         <section id="tutorial-2" class="tutorial-section">
-            <p>Your job now is to teach the robot how to pack a set of lunches by demonstrating the right sequence of actions such as what objects to pick up and where to place them.</p>
+            <p>Your job is to teach a robot how to pack lunches by demonstrating what objects to include in the lunch.</p>
             <section>
 <?php
 echo $this->Html->image('robot-lunch.jpg', array(
@@ -106,14 +130,14 @@ echo $this->Html->image('robot-lunch.jpg', array(
         </section>
 
         <section id="tutorial-3" class="tutorial-section">
-            <p>For each lunch you will be required to pack four items total, one of each in the following categories:
+            <p>For each lunch you will be required to pack four items total:
                 <ul>
 <?php
 $items = array(
     'fruit' => array('apple', 'lemon', 'orange', 'peach', 'pear'),
     'drink' => array('coffee', 'juice', 'milk', 'milk2', 'water'),
     'main item' => array('noodles', 'salad', 'sandwich', 'soup', 'tuna'),
-    'snack item' => array('cheezit', 'cookies', 'nutella', 'pretzels', 'raisins')
+    'snack item' => array('crackers', 'cookies', 'nutella', 'pretzels', 'raisins')
 );
 foreach($items as $type=>$item_list) {
 ?>
@@ -162,10 +186,89 @@ echo $this->Html->image('robot-lunch.jpg', array(
 
     <section id="interface">
         <section>
-            <p>Stuff here.....</p>
             <section>
                 <form>
-                    Form here...
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div id="lunchbox" class="container lunch-div">
+                                
+        <?php
+        echo $this->Html->image('lunch/boxes/1.png', array(
+            'id'=>'lunch',
+            'class'=>'lunch',
+            'width'=>'400',
+        ));
+        echo $this->Html->image('lunch/empty.png', array(
+            'id'=>'lunch-item0',
+            'data-idx'=>0,
+            'class'=>'lunch-item lunch-item0',
+            'width'=>'100',
+        ));
+        echo $this->Html->image('lunch/empty.png', array(
+            'id'=>'lunch-item1',
+            'data-idx'=>1,
+            'class'=>'lunch-item lunch-item1',
+            'width'=>'100',
+        ));
+        echo $this->Html->image('lunch/empty.png', array(
+            'id'=>'lunch-item2',
+            'data-idx'=>2,
+            'class'=>'lunch-item lunch-item2',
+            'width'=>'100',
+        ));
+        echo $this->Html->image('lunch/empty.png', array(
+            'id'=>'lunch-item3',
+            'data-idx'=>3,
+            'class'=>'lunch-item lunch-item3',
+            'width'=>'100',
+        ));
+        ?>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 item-div">
+
+                            <p>Select an item to pack:
+                                <ul>
+                <?php
+                $items = array(
+                    'fruit' => array('apple', 'lemon', 'orange', 'peach', 'pear'),
+                    'drink' => array('coffee', 'juice', 'milk', 'milk2', 'water'),
+                    'main item' => array('noodles', 'salad', 'sandwich', 'soup', 'tuna'),
+                    'snack item' => array('crackers', 'cookies', 'nutella', 'pretzels', 'raisins')
+                );
+                $idx = 1;
+                foreach($items as $type=>$item_list) {
+                ?>
+                                    <li><?php echo ucfirst($type);?></li>
+                                    <div class="row">
+
+                <?php
+                    foreach($item_list as $i) {
+                ?>
+                                        <div class="col-xs-2">
+                <?php
+                echo $this->Html->image('lunch/'.$i.'.png', array(
+                    'id'=>("item".$idx),
+                    'class'=>'item',
+                    'width'=>'80',
+                    'alt'=>$i
+                ));
+                $idx++;
+                ?>
+                                        </div>
+                <?php
+                }
+                ?>
+                                    </div>
+                                    <hr/>
+                <?php
+                }
+                ?>
+                                </ul>
+                            </p>
+                        </div>
+                    </div>
                 </form>
             </section>
         </section>

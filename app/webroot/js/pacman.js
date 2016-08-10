@@ -264,6 +264,10 @@ Pacman.Ghost = function (game, map, colour) {
             "old" : oldPos
         };
     };
+
+    function updateGhost(x, y) {
+        position = {"x": x, "y": y};
+    };
     
     return {
         "eat"         : eat,
@@ -272,7 +276,8 @@ Pacman.Ghost = function (game, map, colour) {
         "makeEatable" : makeEatable,
         "reset"       : reset,
         "move"        : move,
-        "draw"        : draw
+        "draw"        : draw,
+        "updateGhost"    : updateGhost
     };
 };
 
@@ -491,6 +496,13 @@ Pacman.User = function (game, map) {
         ctx.fill();    
     };
 
+    function updateUser(dir, d, x, y) {
+        direction = dir;
+        due = d;
+        position.x = x;
+        position.y = y;
+    };
+
     function draw(ctx) { 
 
         var s     = map.blockSize, 
@@ -525,7 +537,8 @@ Pacman.User = function (game, map) {
         "move"          : move,
         "newLevel"      : newLevel,
         "reset"         : reset,
-        "resetPosition" : resetPosition
+        "resetPosition" : resetPosition,
+        "updateUser" : updateUser
     };
 };
 
@@ -587,7 +600,7 @@ Pacman.Map = function (size) {
     }
     
     function reset() {       
-        map    = Pacman.MAP.clone();
+        map    = clone(Pacman.MAP);
         height = map.length;
         width  = map[0].length;        
     };
@@ -598,6 +611,10 @@ Pacman.Map = function (size) {
     
     function setBlock(pos, type) {
         map[pos.y][pos.x] = type;
+    };
+
+    function updateMap(i, j, type) {
+        map[i][j] = type;
     };
 
     function drawPills(ctx) { 
@@ -627,6 +644,10 @@ Pacman.Map = function (size) {
 		    }
 	    }
     };
+
+    function draw(ctx) {
+
+    }
     
     function draw(ctx) {
         
@@ -677,6 +698,7 @@ Pacman.Map = function (size) {
         "draw"         : draw,
         "drawBlock"    : drawBlock,
         "drawPills"    : drawPills,
+        "updateMap"    : updateMap,
         "block"        : block,
         "setBlock"     : setBlock,
         "reset"        : reset,
@@ -775,7 +797,8 @@ var PACMAN = (function () {
     var state        = WAITING,
         audio        = null,
         ghosts       = [],
-        ghostSpecs   = ["#00FFDE", "#FF0000", "#FFB8DE", "#FFB847"],
+        // ghostSpecs   = ["#00FFDE", "#FF0000", "#FFB8DE", "#FFB847"],
+        ghostSpecs   = ["#00FFDE", "#FF0000", "#FFB8DE"],
         eatenCount   = 0,
         level        = 0,
         tick         = 0,
@@ -787,7 +810,8 @@ var PACMAN = (function () {
         timer        = null,
         map          = null,
         user         = null,
-        stored       = null;
+        stored       = null,
+        stateCallback = null;
 
     function getTick() { 
         return tick;
@@ -795,7 +819,7 @@ var PACMAN = (function () {
 
     function drawScore(text, position) {
         ctx.fillStyle = "#FFFFFF";
-        ctx.font      = "12px BDCartoonShoutRegular";
+        ctx.font      = "12px monospace";
         ctx.fillText(text, 
                      (position["new"]["x"] / 10) * map.blockSize, 
                      ((position["new"]["y"] + 5) / 10) * map.blockSize);
@@ -803,7 +827,7 @@ var PACMAN = (function () {
     
     function dialog(text) {
         ctx.fillStyle = "#FFFF00";
-        ctx.font      = "14px BDCartoonShoutRegular";
+        ctx.font      = "14px monospace";
         var width = ctx.measureText(text).width,
             x     = ((map.width * map.blockSize) - width) / 2;        
         ctx.fillText(text, x, (map.height * 10) + 8);
@@ -900,7 +924,7 @@ var PACMAN = (function () {
         ctx.fillText("s", 10, textBase);
 
         ctx.fillStyle = "#FFFF00";
-        ctx.font      = "14px BDCartoonShoutRegular";
+        ctx.font      = "14px monospace";
         ctx.fillText("Score: " + user.theScore(), 30, textBase);
         ctx.fillText("Level: " + level, 260, textBase);
     }
@@ -910,106 +934,161 @@ var PACMAN = (function () {
         map.drawBlock(Math.ceil(pos.y/10), Math.ceil(pos.x/10), ctx);
     }
 
-    function mainDraw() { 
-
-        var diff, u, i, len, nScore;
-        
-        ghostPos = [];
-
-        for (i = 0, len = ghosts.length; i < len; i += 1) {
-            ghostPos.push(ghosts[i].move(ctx));
-        }
-        u = user.move(ctx);
-        
-        for (i = 0, len = ghosts.length; i < len; i += 1) {
-            redrawBlock(ghostPos[i].old);
-        }
-        redrawBlock(u.old);
-        
-        for (i = 0, len = ghosts.length; i < len; i += 1) {
-            ghosts[i].draw(ctx);
-        }                     
-        user.draw(ctx);
-        
-        userPos = u["new"];
-        
-        for (i = 0, len = ghosts.length; i < len; i += 1) {
-            if (collided(userPos, ghostPos[i]["new"])) {
-                if (ghosts[i].isVunerable()) { 
-                    audio.play("eatghost");
-                    ghosts[i].eat();
-                    eatenCount += 1;
-                    nScore = eatenCount * 50;
-                    drawScore(nScore, ghostPos[i]);
-                    user.addScore(nScore);                    
-                    setState(EATEN_PAUSE);
-                    timerStart = tick;
-                } else if (ghosts[i].isDangerous()) {
-                    audio.play("die");
-                    setState(DYING);
-                    timerStart = tick;
-                }
-            }
-        }                             
-    };
+//    function mainDraw() { 
+//
+//        var diff, u, i, len, nScore;
+//        
+//        ghostPos = [];
+//
+//        for (i = 0, len = ghosts.length; i < len; i += 1) {
+//            ghostPos.push(ghosts[i].move(ctx));
+//        }
+//        u = user.move(ctx);
+//        
+//        for (i = 0, len = ghosts.length; i < len; i += 1) {
+//            redrawBlock(ghostPos[i].old);
+//        }
+//        redrawBlock(u.old);
+//        
+//        for (i = 0, len = ghosts.length; i < len; i += 1) {
+//            ghosts[i].draw(ctx);
+//        }                     
+//        user.draw(ctx);
+//        
+//        userPos = u["new"];
+//        
+//        for (i = 0, len = ghosts.length; i < len; i += 1) {
+//            if (collided(userPos, ghostPos[i]["new"])) {
+//                if (ghosts[i].isVunerable()) { 
+//                    audio.play("eatghost");
+//                    ghosts[i].eat();
+//                    eatenCount += 1;
+//                    nScore = eatenCount * 50;
+//                    drawScore(nScore, ghostPos[i]);
+//                    user.addScore(nScore);                    
+//                    setState(EATEN_PAUSE);
+//                    timerStart = tick;
+//                } else if (ghosts[i].isDangerous()) {
+//                    audio.play("die");
+//                    setState(DYING);
+//                    timerStart = tick;
+//                }
+//            }
+//        }                             
+//    };
 
     function mainLoop() {
 
         var diff;
+        var rosState;
 
         if (state !== PAUSE) { 
             ++tick;
         }
 
-        map.drawPills(ctx);
+//        if (state === PLAYING) {
+//            mainDraw();
+//        } else if (state === WAITING && stateChanged) {            
 
-        if (state === PLAYING) {
-            mainDraw();
-        } else if (state === WAITING && stateChanged) {            
-            stateChanged = false;
-            map.draw(ctx);
-            dialog("Press N to start a New game");            
-        } else if (state === EATEN_PAUSE && 
-                   (tick - timerStart) > (Pacman.FPS / 3)) {
-            map.draw(ctx);
-            setState(PLAYING);
-        } else if (state === DYING) {
-            if (tick - timerStart > (Pacman.FPS * 2)) { 
-                loseLife();
-            } else { 
-                redrawBlock(userPos);
-                for (i = 0, len = ghosts.length; i < len; i += 1) {
-                    redrawBlock(ghostPos[i].old);
-                    ghostPos.push(ghosts[i].draw(ctx));
-                }                                   
-                user.drawDead(ctx, (tick - timerStart) / (Pacman.FPS * 2));
-            }
-        } else if (state === COUNTDOWN) {
-            
-            diff = 5 + Math.floor((timerStart - tick) / Pacman.FPS);
-            
-            if (diff === 0) {
-                map.draw(ctx);
-                setState(PLAYING);
-            } else {
-                if (diff !== lastTime) { 
-                    lastTime = diff;
-                    map.draw(ctx);
-                    dialog("Starting in: " + diff);
+            newState = stateCallback();
+            if( newState != null && newState.data !== rosState) {
+                rosState = newState.data;
+                var lines = rosState.split("\n");
+                lines = lines.map(function(l) {
+                    return l.split('')
+                });
+                // Remove score and extra line
+                lines = lines.slice(0, lines.length-2);
+
+
+                // Update from ROS
+
+                for (i = 0; i < lines.length; i += 1) {
+                    for (j = 0; j < lines[i].length; j += 1) {
+                        switch(lines[i][j]) {
+                          case "%":
+                            map.updateMap(i, j, Pacman.WALL);
+                            break;
+                          case "o":
+                            map.updateMap(i, j, Pacman.PILL);
+                            break;
+                          case ".":
+                            map.updateMap(i, j, Pacman.BISCUIT);
+                            break;
+                          case " ":
+                            map.updateMap(i, j, Pacman.EMPTY);
+                            break;
+                          case "<":
+                            user.updateUser(RIGHT, RIGHT, j*10, i*10);
+                            break;
+                          case ">":
+                            user.updateUser(LEFT, LEFT, j*10, i*10);
+                            break;
+                          case "v":
+                            user.updateUser(UP, UP, j*10, i*10);
+                            break;
+                          case "^":
+                            user.updateUser(DOWN, DOWN, j*10, i*10);
+                            break;
+                          default:
+                            ghosts[parseInt(lines[i][j])-1].updateGhost(j*10, i*10);
+                            break;
+                        }
+                    }
                 }
+
+                // Draw everything
+                map.draw(ctx);
+                map.drawPills(ctx);
+                user.draw(ctx);
+                for (i = 0, len = ghosts.length; i < len; i += 1) {
+                    ghosts[i].draw(ctx);
+                }                     
             }
-        } 
+
+
+            //dialog("Press N to start a New game");            
+//        } else if (state === EATEN_PAUSE && 
+//                   (tick - timerStart) > (Pacman.FPS / 3)) {
+//            map.draw(ctx);
+//            setState(PLAYING);
+//        } else if (state === DYING) {
+//            if (tick - timerStart > (Pacman.FPS * 2)) { 
+//                loseLife();
+//            } else { 
+//                redrawBlock(userPos);
+//                for (i = 0, len = ghosts.length; i < len; i += 1) {
+//                    redrawBlock(ghostPos[i].old);
+//                    ghostPos.push(ghosts[i].draw(ctx));
+//                }                                   
+//                user.drawDead(ctx, (tick - timerStart) / (Pacman.FPS * 2));
+//            }
+//        } else if (state === COUNTDOWN) {
+//            
+//            diff = 5 + Math.floor((timerStart - tick) / Pacman.FPS);
+//            
+//            if (diff === 0) {
+//                map.draw(ctx);
+//                setState(PLAYING);
+//            } else {
+//                if (diff !== lastTime) { 
+//                    lastTime = diff;
+//                    map.draw(ctx);
+//                    dialog("Starting in: " + diff);
+//                }
+//            }
+//        } 
 
         drawFooter();
     }
 
     function eatenPill() {
-        audio.play("eatpill");
-        timerStart = tick;
-        eatenCount = 0;
-        for (i = 0; i < ghosts.length; i += 1) {
-            ghosts[i].makeEatable(ctx);
-        }        
+//        audio.play("eatpill");
+//        timerStart = tick;
+//        eatenCount = 0;
+//        for (i = 0; i < ghosts.length; i += 1) {
+//            ghosts[i].makeEatable(ctx);
+//        }        
     };
     
     function completedLevel() {
@@ -1027,12 +1106,13 @@ var PACMAN = (function () {
         }
     };
     
-    function init(wrapper, root) {
-        
+    function init(wrapper, root, stateCB) {
         var i, len, ghost,
             blockSize = wrapper.offsetWidth / 19,
             canvas    = document.createElement("canvas");
         
+        stateCallback = stateCB;
+
         canvas.setAttribute("width", (blockSize * 19) + "px");
         canvas.setAttribute("height", (blockSize * 22) + 30 + "px");
 
@@ -1051,23 +1131,32 @@ var PACMAN = (function () {
             ghost = new Pacman.Ghost({"getTick":getTick}, map, ghostSpecs[i]);
             ghosts.push(ghost);
         }
+
+        for (var i = 0; i < ghosts.length; i += 1) { 
+            ghosts[i].reset();
+        }
         
         map.draw(ctx);
-        dialog("Loading ...");
+        //dialog("Loading ...");
 
         var extension = Modernizr.audio.ogg ? 'ogg' : 'mp3';
 
+
         var audio_files = [
-            ["start", root + "audio/opening_song." + extension],
-            ["die", root + "audio/die." + extension],
-            ["eatghost", root + "audio/eatghost." + extension],
-            ["eatpill", root + "audio/eatpill." + extension],
-            ["eating", root + "audio/eating.short." + extension],
-            ["eating2", root + "audio/eating.short." + extension]
+            ["start", "/audio/opening_song." + extension],
+            ["die", "/audio/die." + extension],
+            ["eatghost", "/audio/eatghost." + extension],
+            ["eatpill", "/audio/eatpill." + extension],
+            ["eating", "/audio/eating.short." + extension],
+            ["eating2", "/audio/eating.short." + extension]
         ];
 
         load(audio_files, function() { loaded(); });
     };
+
+    function updateState(gameState) {
+        //console.log(gameState);
+    }
 
     function load(arr, callback) { 
         
@@ -1081,11 +1170,12 @@ var PACMAN = (function () {
         
     function loaded() {
 
-        dialog("Press N to Start");
+        //dialog("Press N to Start");
         
         document.addEventListener("keydown", keyDown, true);
         document.addEventListener("keypress", keyPress, true); 
-        
+       
+        localStorage["soundDisabled"] = "true";
         timer = window.setInterval(mainLoop, 1000 / Pacman.FPS);
     };
     
@@ -1253,17 +1343,52 @@ Pacman.WALLS = [
      {"line": [10.5, 9.5]}]
 ];
 
-Object.prototype.clone = function () {
-    var i, newObj = (this instanceof Array) ? [] : {};
-    for (i in this) {
-        if (i === 'clone') {
-            continue;
-        }
-        if (this[i] && typeof this[i] === "object") {
-            newObj[i] = this[i].clone();
-        } else {
-            newObj[i] = this[i];
-        }
+function clone(obj) {
+    var copy;
+
+    // Handle the 3 simple types, and null or undefined
+    if (null == obj || "object" != typeof obj) return obj;
+
+    // Handle Date
+    if (obj instanceof Date) {
+        copy = new Date();
+        copy.setTime(obj.getTime());
+        return copy;
     }
-    return newObj;
-};
+
+    // Handle Array
+    if (obj instanceof Array) {
+        copy = [];
+        for (var i = 0, len = obj.length; i < len; i++) {
+            copy[i] = clone(obj[i]);
+        }
+        return copy;
+    }
+
+    // Handle Object
+    if (obj instanceof Object) {
+        copy = {};
+        for (var attr in obj) {
+            if (obj.hasOwnProperty(attr)) copy[attr] = clone(obj[attr]);
+        }
+        return copy;
+    }
+
+    throw new Error("Unable to copy obj! Its type isn't supported.");
+}
+
+
+//Object.prototype.clone = function () {
+//    var i, newObj = (this instanceof Array) ? [] : {};
+//    for (i in this) {
+//        if (i === 'clone') {
+//            continue;
+//        }
+//        if (this[i] && typeof this[i] === "object") {
+//            newObj[i] = this[i].clone();
+//        } else {
+//            newObj[i] = this[i];
+//        }
+//    }
+//    return newObj;
+//};

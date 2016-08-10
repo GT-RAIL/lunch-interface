@@ -27,22 +27,25 @@ else if(isset($userId)) {
 else{
     $user_id = '';
 }
+
+// connect to ROS
+echo $this->Rms->ros($environment['Rosbridge']['uri']);
+
+echo $this->Html->script(array(
+			'http://rail-engine.cc.gatech.edu/widgets/rosqueuejs/build/rosqueue.js'));
 ?>
 
 
 <?php
 // Do analytics and logging 
-//echo $this->Html->script('analytics.js');
+echo $this->Html->script('analytics.js');
 
 //jquery
-//echo $this->Html->script('jquery-1.11.0');
+echo $this->Html->script('jquery-1.11.0');
 
 // bootstrap
 //echo $this->Html->script('bootstrap.min');
 //echo $this->Html->css('bootstrap.min');
-
-echo $this->Html->script('modernizr-1.5.min');
-echo $this->Html->script('pacman');
 
 //echo $this->Html->script('tutorial.js');
 
@@ -69,18 +72,38 @@ $appointment = $environment['Condition'][0]['Slot'][0];
 <section>
 
     <h1>Pacman</h1>
+<?php
+    echo $this->Html->script('modernizr-1.5.min');
+    echo $this->Html->script('pacman');
+?>
 
     <div id="pacman"></div>
+    <div id="output"></div>
 
     <script>
+        var latest_game_state = null;
+        var new_state_received = false;
+        var game_state = new ROSLIB.Topic({
+            ros: _ROS,
+            name: '/rail_pacman_server/game_state_str',
+            messageType: 'std_msgs/String'
+        });
+        game_state.subscribe(function (message){
+            latest_game_state = message;
+            new_state_received = true;
+            //console.log(message);
+        });
+
         var el = document.getElementById("pacman");
 
         if (Modernizr.canvas && Modernizr.localstorage && 
             Modernizr.audio && (Modernizr.audio.ogg || Modernizr.audio.mp3)) {
-          window.setTimeout(function () { PACMAN.init(el, "./"); }, 0);
+          PACMAN.init(el, "./", function(){ return latest_game_state; });
         } else { 
           el.innerHTML = "Sorry, needs a decent browser<br /><small>" + 
             "(firefox 3.6+, Chrome 4+, Opera 10+ and Safari 4+)</small>";
         }
+
+
     </script>
 </section>

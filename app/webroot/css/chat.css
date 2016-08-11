@@ -1,0 +1,46 @@
+.chat-container {
+    width: 400px;
+}
+.chat-display {
+    height: 100px;
+    background: white;
+    resize: both;
+    overflow: auto;
+    padding: 0;
+    margin: 0;
+}
+.chat-from-self, .chat-from-other {
+    padding: 5px;
+    margin: 5px;
+}
+.chat-from-self {
+    color: black;
+    float: left;
+    border-radius: 5px;
+    background: #8AC007;
+    clear:   both;
+}
+.chat-from-other {
+    color: black;
+    float: right;
+    text-align: left;
+    border-radius: 5px;
+    background: skyblue;
+    clear:   both;
+}
+.chat-text-input {
+    float: left;
+    width: 400px;
+    background: white;
+    border-top: 1px solid grey;
+    padding: 0px;
+    margin: 0px;
+}
+.chat-btn {
+    float: right;
+    width: 50px;
+    padding: 0;
+    margin: 0;
+    height: 34px;
+    line-height:normal !important;
+}

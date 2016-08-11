@@ -128,11 +128,11 @@ Pacman.Ghost = function (game, map, colour) {
 
     function getColour() { 
         if (eatable) { 
-            if (secondsAgo(eatable) > 5) { 
-                return game.getTick() % 20 > 10 ? "#FFFFFF" : "#0000BB";
-            } else { 
+//            if (secondsAgo(eatable) > 5) { 
+//                return game.getTick() % 20 > 10 ? "#FFFFFF" : "#0000BB";
+//            } else { 
                 return "#0000BB";
-            }
+//            }
         } else if(eaten) { 
             return "#222";
         } 
@@ -145,13 +145,13 @@ Pacman.Ghost = function (game, map, colour) {
             top  = (position.y/10) * s,
             left = (position.x/10) * s;
     
-        if (eatable && secondsAgo(eatable) > 8) {
-            eatable = null;
-        }
+//        if (eatable && secondsAgo(eatable) > 8) {
+//            eatable = null;
+//        }
         
-        if (eaten && secondsAgo(eaten) > 3) { 
-            eaten = null;
-        }
+//        if (eaten && secondsAgo(eaten) > 3) { 
+//            eaten = null;
+//        }
         
         var tl = left + s;
         var base = top + s - 3;
@@ -265,7 +265,8 @@ Pacman.Ghost = function (game, map, colour) {
         };
     };
 
-    function updateGhost(x, y) {
+    function updateGhost(x, y, scared) {
+        eatable = scared;
         position = {"x": x, "y": y};
     };
     
@@ -295,6 +296,10 @@ Pacman.User = function (game, map) {
     keyMap[KEY.ARROW_UP]    = UP;
     keyMap[KEY.ARROW_RIGHT] = RIGHT;
     keyMap[KEY.ARROW_DOWN]  = DOWN;
+    keyMap[KEY.W]  = LEFT;
+    keyMap[KEY.A]    = UP;
+    keyMap[KEY.S] = RIGHT;
+    keyMap[KEY.D]  = DOWN;
 
     function addScore(nScore) { 
         score += nScore;
@@ -811,7 +816,9 @@ var PACMAN = (function () {
         map          = null,
         user         = null,
         stored       = null,
-        stateCallback = null;
+        stateCallback = null,
+        validKeys     = {},
+        inputTopic    = null;
 
     function getTick() { 
         return tick;
@@ -857,25 +864,36 @@ var PACMAN = (function () {
     }
 
     function keyDown(e) {
-        if (e.keyCode === KEY.N) {
-            startNewGame();
-        } else if (e.keyCode === KEY.S) {
-            audio.disableSound();
-            localStorage["soundDisabled"] = !soundDisabled();
-        } else if (e.keyCode === KEY.P && state === PAUSE) {
-            audio.resume();
-            map.draw(ctx);
-            setState(stored);
-        } else if (e.keyCode === KEY.P) {
-            stored = state;
-            setState(PAUSE);
-            audio.pause();
-            map.draw(ctx);
-            dialog("Paused");
-        } else if (state !== PAUSE) {   
-            return user.keyDown(e);
+        //console.log(e.keyCode + " -> " + validKeys[e.keyCode]);
+        if (typeof validKeys[e.keyCode] !== "undefined") {
+            e.preventDefault();
+            if( inputTopic != null) {
+                var msg = new ROSLIB.Message({
+                    data: e.code
+                });
+                inputTopic.publish(msg);
+            }
         }
         return true;
+
+//        if (e.keyCode === KEY.N) {
+//            startNewGame();
+//        } else if (e.keyCode === KEY.S) {
+//            audio.disableSound();
+//            localStorage["soundDisabled"] = !soundDisabled();
+//        } else if (e.keyCode === KEY.P && state === PAUSE) {
+//            audio.resume();
+//            map.draw(ctx);
+//            setState(stored);
+//        } else if (e.keyCode === KEY.P) {
+//            stored = state;
+//            setState(PAUSE);
+//            audio.pause();
+//            map.draw(ctx);
+//            dialog("Paused");
+//        } else if (state !== PAUSE) {   
+//            return user.keyDown(e);
+//        }
     }    
 
     function loseLife() {        
@@ -1031,7 +1049,16 @@ var PACMAN = (function () {
                             user.updateUser(DOWN, DOWN, j*10, i*10);
                             break;
                           default:
-                            ghosts[parseInt(lines[i][j])-1].updateGhost(j*10, i*10);
+                            ghostChar = lines[i][j];
+                            // Normal ghost
+                            if( ghostChar == ghostChar.toUpperCase()) {
+                                var ghostIndex = ghostChar.charCodeAt(0) - "A".charCodeAt(0);
+                                var scared = false;
+                            } else {
+                                var ghostIndex = ghostChar.charCodeAt(0) - "a".charCodeAt(0);
+                                var scared = true;
+                            }
+                            ghosts[ghostIndex].updateGhost(j*10, i*10, scared);
                             break;
                         }
                     }
@@ -1106,12 +1133,28 @@ var PACMAN = (function () {
         }
     };
     
-    function init(wrapper, root, stateCB) {
+    function init(wrapper, root, stateCB, inTopic) {
+
+        validKeys[KEY.ARROW_LEFT]  = LEFT;
+        validKeys[KEY.ARROW_UP]    = UP;
+        validKeys[KEY.ARROW_RIGHT] = RIGHT;
+        validKeys[KEY.ARROW_DOWN]  = DOWN;
+        validKeys[KEY.W]  = LEFT;
+        validKeys[KEY.A]    = UP;
+        validKeys[KEY.S] = RIGHT;
+        validKeys[KEY.D]  = DOWN;
+        validKeys[KEY.H]  = LEFT;
+        validKeys[KEY.K]    = UP;
+        validKeys[KEY.L] = RIGHT;
+        validKeys[KEY.J]  = DOWN;
+        validKeys[KEY.Q]  = 1;
+
         var i, len, ghost,
             blockSize = wrapper.offsetWidth / 19,
             canvas    = document.createElement("canvas");
         
         stateCallback = stateCB;
+        inputTopic = inTopic;
 
         canvas.setAttribute("width", (blockSize * 19) + "px");
         canvas.setAttribute("height", (blockSize * 22) + 30 + "px");
@@ -1222,11 +1265,11 @@ Pacman.MAP = [
 	[0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0],
 	[0, 1, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 1, 0],
 	[0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0],
-	[2, 2, 2, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 2, 2, 2],
+	[0, 2, 2, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 2, 2, 0],
 	[0, 0, 0, 0, 1, 0, 1, 0, 0, 3, 0, 0, 1, 0, 1, 0, 0, 0, 0],
-	[2, 2, 2, 2, 1, 1, 1, 0, 3, 3, 3, 0, 1, 1, 1, 2, 2, 2, 2],
+	[0, 2, 2, 2, 1, 1, 1, 0, 3, 3, 3, 0, 1, 1, 1, 2, 2, 2, 0],
 	[0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0],
-	[2, 2, 2, 0, 1, 0, 1, 1, 1, 2, 1, 1, 1, 0, 1, 0, 2, 2, 2],
+	[0, 2, 2, 0, 1, 0, 1, 1, 1, 2, 1, 1, 1, 0, 1, 0, 2, 2, 0],
 	[0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0],
 	[0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0],
 	[0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0],
@@ -1240,7 +1283,10 @@ Pacman.MAP = [
 
 Pacman.WALLS = [
     
-    [{"move": [0, 9.5]}, {"line": [3, 9.5]},
+    // Upper left warp modification
+    [{"move": [1, 11.5]}, {"curve": [0.5, 11.5, 0.5, 11.0]}, 
+     {"line": [0.5, 10.0]}, {"curve": [0.5, 9.5, 1, 9.5]}, 
+     {"line": [3, 9.5]},
      {"curve": [3.5, 9.5, 3.5, 9]}, {"line": [3.5, 8]},
      {"curve": [3.5, 7.5, 3, 7.5]}, {"line": [1, 7.5]},
      {"curve": [0.5, 7.5, 0.5, 7]}, {"line": [0.5, 1]},
@@ -1252,7 +1298,10 @@ Pacman.WALLS = [
      {"curve": [18.5, 0.5, 18.5, 1]}, {"line": [18.5, 7]},
      {"curve": [18.5, 7.5, 18, 7.5]}, {"line": [16, 7.5]},
      {"curve": [15.5, 7.5, 15.5, 8]}, {"line": [15.5, 9]},
-     {"curve": [15.5, 9.5, 16, 9.5]}, {"line": [19, 9.5]}],
+
+     // Right top warp modification
+     {"curve": [15.5, 9.5, 16, 9.5]}, {"line": [18.0, 9.5]},
+     {"curve": [18.5, 9.5, 18.5, 10]}, {"line": [18.5, 11.0]}],
 
     [{"move": [2.5, 5.5]}, {"line": [3.5, 5.5]}],
 
@@ -1291,7 +1340,8 @@ Pacman.WALLS = [
     [{"move": [13, 7.5]}, {"curve": [13.5, 7.5, 13.5, 8]},
      {"line": [13.5, 9.5]}],
 
-    [{"move": [0, 11.5]}, {"line": [3, 11.5]}, {"curve": [3.5, 11.5, 3.5, 12]},
+     // Left lower warp modification
+    [{"move": [1, 11.5]}, {"line": [3, 11.5]}, {"curve": [3.5, 11.5, 3.5, 12]},
      {"line": [3.5, 13]}, {"curve": [3.5, 13.5, 3, 13.5]}, {"line": [1, 13.5]},
      {"curve": [0.5, 13.5, 0.5, 14]}, {"line": [0.5, 17]},
      {"curve": [0.5, 17.5, 1, 17.5]}, {"line": [1.5, 17.5]}],
@@ -1299,11 +1349,13 @@ Pacman.WALLS = [
      {"curve": [0.5, 21.5, 1, 21.5]}, {"line": [18, 21.5]},
      {"curve": [18.5, 21.5, 18.5, 21]}, {"line": [18.5, 18]},
      {"curve": [18.5, 17.5, 18, 17.5]}, {"line": [17.5, 17.5]}],
+
+    // Right lower warp tunnel modification
     [{"move": [18, 17.5]}, {"curve": [18.5, 17.5, 18.5, 17]},
      {"line": [18.5, 14]}, {"curve": [18.5, 13.5, 18, 13.5]},
      {"line": [16, 13.5]}, {"curve": [15.5, 13.5, 15.5, 13]},
      {"line": [15.5, 12]}, {"curve": [15.5, 11.5, 16, 11.5]},
-     {"line": [19, 11.5]}],
+     {"line": [18.0, 11.5]}, {"curve": [18.5, 11.5, 18.5, 11.0]}],
 
     [{"move": [5.5, 11.5]}, {"line": [5.5, 13.5]}],
     [{"move": [13.5, 11.5]}, {"line": [13.5, 13.5]}],

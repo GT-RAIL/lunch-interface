@@ -88,7 +88,7 @@ $appointment = $environment['Condition'][0]['Slot'][0];
     <div id="pacman"></div>
     <section>
         <div style="text-align: center">
-            <span id="queue_size">0 user(s) present</span> 
+            <span id="queue_size"></span> 
         </div>
     </section>
 
@@ -126,17 +126,16 @@ $appointment = $environment['Condition'][0]['Slot'][0];
             messageType: 'rail_user_queue_manager/Queue'
         });
         queue_topic.subscribe(function (message){
-            console.log(message);
             num_in_queue = parseInt(message.queue.length);
             if (num_in_queue > 1) {
-                $("#queue_size").html(message.queue.length + " users present.");
+                $("#queue_size").html(message.queue.length + " users connected.");
             } else if (num_in_queue == 1) {
-                $("#queue_size").html(message.queue.length + " user present.");
+                $("#queue_size").html(message.queue.length + " user connected.");
             }
         });
         var input_topic = new ROSLIB.Topic({
             ros: _ROS,
-            name: '/rail_pacman_server/input',
+            name: '/rail_pacman_server/input_raw',
             messageType: 'std_msgs/String'
         });
 

@@ -469,13 +469,13 @@ Pacman.User = function (game, map) {
 
     function calcAngle(dir, pos) { 
         if (dir == RIGHT && (pos.x % 10 < 5)) {
-            return {"start":0.25, "end":1.75, "direction": false};
+            return {"start":5.498, "end":0.785, "direction": true};
         } else if (dir === DOWN && (pos.y % 10 < 5)) { 
-            return {"start":0.75, "end":2.25, "direction": false};
-        } else if (dir === UP && (pos.y % 10 < 5)) { 
-            return {"start":1.25, "end":1.75, "direction": true};
+            return {"start":0.785, "end": 2.356, "direction": true};
         } else if (dir === LEFT && (pos.x % 10 < 5)) {             
-            return {"start":0.75, "end":1.25, "direction": true};
+            return {"start":2.365, "end":3.927, "direction": true};
+        } else if (dir === UP && (pos.y % 10 < 5)) { 
+            return {"start":3.927, "end":5.498, "direction": true};
         }
         return {"start":0, "end":2, "direction": false};
     };
@@ -508,10 +508,13 @@ Pacman.User = function (game, map) {
         position.y = y;
     };
 
-    function draw(ctx) { 
-
+    function draw(ctx, tick) { 
         var s     = map.blockSize, 
             angle = calcAngle(direction, position);
+        // Make mouth open and close
+        progress = (tick % 5)/5;
+        angle.start = angle.start+(0.5*progress);
+        angle.end = angle.end-(0.5*progress);
 
         ctx.fillStyle = "#FFFF00";
 
@@ -522,8 +525,8 @@ Pacman.User = function (game, map) {
         
         ctx.arc(((position.x/10) * s) + s / 2,
                 ((position.y/10) * s) + s / 2,
-                s / 2, Math.PI * angle.start, 
-                Math.PI * angle.end, angle.direction); 
+                s / 2, angle.start, 
+                angle.end, angle.direction); 
         
         ctx.fill();    
     };
@@ -1021,6 +1024,14 @@ var PACMAN = (function () {
 
                 // Update from ROS
 
+
+                // Wall Init:
+                if (!Pacman.ROS_INIT) {
+                    console.log("INit walls!!!");
+                    Pacman.ROS_INIT = true;
+                }
+         
+
                 for (i = 0; i < lines.length; i += 1) {
                     for (j = 0; j < lines[i].length; j += 1) {
                         switch(lines[i][j]) {
@@ -1067,7 +1078,7 @@ var PACMAN = (function () {
                 // Draw everything
                 map.draw(ctx);
                 map.drawPills(ctx);
-                user.draw(ctx);
+                user.draw(ctx, tick);
                 for (i = 0, len = ghosts.length; i < len; i += 1) {
                     ghosts[i].draw(ctx);
                 }                     
@@ -1280,6 +1291,8 @@ Pacman.MAP = [
 	[0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
 	[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 ];
+
+Pacman.ROS_INIT = false;
 
 Pacman.WALLS = [
     
